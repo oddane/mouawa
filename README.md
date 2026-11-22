@@ -15,13 +15,12 @@ You need a computer with [Node.js 20 or newer](https://nodejs.org) and the **Exp
 git clone https://github.com/oddane/mouawa.git
 cd mouawa
 npm install
-npx expo install --fix        # lines package versions up with your Expo SDK
 npx expo start
 ```
 
 Scan the QR code. On iPhone, use the Camera app; on Android, scan from inside Expo Go. Your phone and computer need to be on the same Wi-Fi network. If they aren't, run `npx expo start --tunnel`.
 
-> **"Project is incompatible with this version of Expo Go"?** Expo Go only runs the newest Expo SDK. Run `npx expo install expo@latest` and then `npx expo install --fix`, and start again.
+> The project targets **Expo SDK 58**. If Expo Go later says the project is incompatible, Expo Go has moved to a newer SDK: run `npx expo install expo@latest` and then `npx expo install --fix`, and start again.
 
 ## One-time Supabase settings (dashboard)
 

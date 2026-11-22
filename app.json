@@ -7,7 +7,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "backgroundColor": "#FFFFFF",
     "ios": {
       "bundleIdentifier": "com.oddane.mouawa",
@@ -26,7 +25,6 @@
         "backgroundColor": "#1F7A4F",
         "monochromeImage": "./assets/adaptive-icon.png"
       },
-      "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "CAMERA",
