@@ -1,8 +1,8 @@
 
 /* ============ Native app: Supabase accounts (real email confirmation, reset links) ============ */
-if (window.MESA_NATIVE) {
-  const sb = window.mesaSB || null, NS = window.mesaStore;
-  const REDIRECT = () => window.MESA_REDIRECT || 'mesa://auth';
+if (window.MOUAWA_NATIVE) {
+  const sb = window.mouawaSB || null, NS = window.mouawaStore;
+  const REDIRECT = () => window.MOUAWA_REDIRECT || 'mouawa://auth';
   S.native = {out:false};
   const until = (fn, ms = 15000) => new Promise(res => { const t0 = Date.now(); const k = () => (fn() || Date.now() - t0 > ms) ? res() : setTimeout(k, 80); k(); });
 
@@ -19,23 +19,23 @@ if (window.MESA_NATIVE) {
       db.collection('profiles').onSnapshot(snap => { const mm = {}; snap.docs.forEach(d => { mm[d.id] = {id:d.id, ...d.data()}; }); S.profiles = mm; S.loaded.profiles = true; bump(); },
         () => { S.loaded.profiles = true; render(); });
     }
-    const fl = NS.getItem('mesa-flash'); if (fl) { NS.removeItem('mesa-flash'); setTimeout(() => toast(fl), 600); }
+    const fl = NS.getItem('mouawa-flash'); if (fl) { NS.removeItem('mouawa-flash'); setTimeout(() => toast(fl), 600); }
     render(); roomSetup();
-    if (window.mesaSendTheme) setTimeout(window.mesaSendTheme, 100);
+    if (window.mouawaSendTheme) setTimeout(window.mouawaSendTheme, 100);
   };
 
   async function nativeAfterLogin(){
     await until(() => S.loaded.profiles && S.sessionLoaded);
     let u = null; try { u = (await sb.auth.getUser()).data.user; } catch (e) {}
-    const fresh = NS.getItem('mesa-fresh'), want = NS.getItem('mesa-want');
-    NS.removeItem('mesa-fresh'); NS.removeItem('mesa-want');
+    const fresh = NS.getItem('mouawa-fresh'), want = NS.getItem('mouawa-want');
+    NS.removeItem('mouawa-fresh'); NS.removeItem('mouawa-want');
     if (fresh) { const lo = {}; for (const p of ownedAccounts()) lo[p.id] = 0; if (Object.keys(lo).length) await saveSession({loggedOut:lo}); pickAccount(); }
     if (!ownedAccounts().length) {
       if (u && u.user_metadata && u.user_metadata.pending) await finishPending(u);
       else { S.auth = freshAuth('signup'); S.auth.email = (u && u.email) || ''; S.auth.name = S.myName || ''; S.creating = true; render(); }
     }
     if (want) { const p = byHandle(want); if (p && isOwned(p.id) && p.id !== S.uid) switchAccount(p.id, true); }
-    if (NS.getItem('mesa-recovery')) { NS.removeItem('mesa-recovery'); openModal({type:'nv-newpw'}); }
+    if (NS.getItem('mouawa-recovery')) { NS.removeItem('mouawa-recovery'); openModal({type:'nv-newpw'}); }
     for (const p of ownedAccounts()) sb.rpc('claim_handle', {h:p.handle}).then(() => {}, () => {});
   }
   async function finishPending(u){
@@ -53,7 +53,7 @@ if (window.MESA_NATIVE) {
       await sb.auth.updateUser({data:{pending:null}});
       await switchAccount(acct, true);
       if (pd.x) go('switch');
-      toast(h !== pd.d.handle ? `@${pd.d.handle} was taken while you confirmed, so you’re @${h}. You can change it in Settings.` : (d.pro && d.pro.verify && d.pro.verify.status === 'pending' ? `Welcome, @${h}. Your checkmark request is in review.` : `Welcome to Mesa, @${h}`));
+      toast(h !== pd.d.handle ? `@${pd.d.handle} was taken while you confirmed, so you’re @${h}. You can change it in Settings.` : (d.pro && d.pro.verify && d.pro.verify.status === 'pending' ? `Welcome, @${h}. Your checkmark request is in review.` : `Welcome to Mouawa, @${h}`));
     });
   }
 
@@ -76,7 +76,7 @@ if (window.MESA_NATIVE) {
     const btn = $('#su-form button[type=submit]'); if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
     const reset = () => { const b = $('#su-form button[type=submit]'); if (b) { b.disabled = false; b.textContent = org ? 'Create organization account' : 'Create account'; } };
     let r; try { r = await sb.auth.signUp({email:a.email, password:a.pw, options:{emailRedirectTo:REDIRECT(), data:{name:a.name, pending:{d, x:a.x}}}}); }
-    catch (e) { reset(); return auErr('We couldn’t reach Mesa. Check your connection and try again.'); }
+    catch (e) { reset(); return auErr('We couldn’t reach Mouawa. Check your connection and try again.'); }
     if (r.error) {
       reset(); const m = r.error.message || '';
       if (/registered|exists/i.test(m)) { a.step = 2; a.err = 'That email already has an account. Log in instead.'; return render(); }
@@ -85,7 +85,7 @@ if (window.MESA_NATIVE) {
       return auErr(m || 'Sign-up didn’t work. Try again.');
     }
     if (r.data && r.data.user && Array.isArray(r.data.user.identities) && !r.data.user.identities.length) { reset(); a.step = 2; a.err = 'That email already has an account. Log in instead.'; return render(); }
-    if (r.data && r.data.session) { NS.setItem('mesa-fresh', '1'); window.mesaReload(); return; }
+    if (r.data && r.data.session) { NS.setItem('mouawa-fresh', '1'); window.mouawaReload(); return; }
     a.screen = 'verify'; a.sentTo = a.email; S.creating = false; render(); window.scrollTo(0, 0);
   };
   function verifyHTML(){
@@ -99,7 +99,7 @@ if (window.MESA_NATIVE) {
     </div></div>`;
   }
   function offlineHTML(){
-    return `<div class="su"><div class="su-card"><div class="su-body nv-center" style="padding-top:12vh"><span class="nv-badge">${ic('globe', 30, 2)}</span><h1 class="su-h">You’re offline</h1><p class="su-p">Mesa needs an internet connection. Check Wi-Fi or mobile data, then try again.</p></div><div class="su-foot"><button class="btn btn-acc btn-lg" data-act="nv-retry">Try again</button></div></div></div>`;
+    return `<div class="su"><div class="su-card"><div class="su-body nv-center" style="padding-top:12vh"><span class="nv-badge">${ic('globe', 30, 2)}</span><h1 class="su-h">You’re offline</h1><p class="su-p">Mouawa needs an internet connection. Check Wi-Fi or mobile data, then try again.</p></div><div class="su-foot"><button class="btn btn-acc btn-lg" data-act="nv-retry">Try again</button></div></div></div>`;
   }
   const _viewOnboardN = viewOnboard;
   viewOnboard = function(){ if (S.mode === 'offline') return offlineHTML(); if (S.auth.screen === 'verify' && !S.creating) return verifyHTML(); return _viewOnboardN(); };
@@ -126,16 +126,16 @@ if (window.MESA_NATIVE) {
         if (r.error || !r.data || !r.data.access_token) { done(); return code === 'email_not_confirmed' ? unconfirmed('') : err('That username and password don’t match.'); }
         const s = await sb.auth.setSession({access_token:r.data.access_token, refresh_token:r.data.refresh_token});
         if (s.error) { done(); return err('Logging in didn’t work. Try again.'); }
-        NS.setItem('mesa-want', h);
+        NS.setItem('mouawa-want', h);
       }
-      NS.setItem('mesa-fresh', '1'); window.mesaReload();
-    } catch (x) { done(); err('We couldn’t reach Mesa. Check your connection and try again.'); }
+      NS.setItem('mouawa-fresh', '1'); window.mouawaReload();
+    } catch (x) { done(); err('We couldn’t reach Mouawa. Check your connection and try again.'); }
   };
 
   /* Log out: leaving the last account on the phone signs out of Supabase. */
   const _logOutN = logOut;
   logOut = async function(id){ const others = loggedIn().filter(p => p.id !== id); if (others.length) return _logOutN(id); return nativeSignOut(); };
-  async function nativeSignOut(){ S.native.out = true; try { await sb.auth.signOut(); } catch (e) {} NS.setItem('mesa-flash', 'You’re logged out'); window.mesaReload(); }
+  async function nativeSignOut(){ S.native.out = true; try { await sb.auth.signOut(); } catch (e) {} NS.setItem('mouawa-flash', 'You’re logged out'); window.mouawaReload(); }
 
   /* Keep username login working when a handle changes. */
   const _patchProfileN = patchProfile;
@@ -156,7 +156,7 @@ if (window.MESA_NATIVE) {
 
   Object.assign(A, {
     'logout-all': () => nativeSignOut(),
-    'nv-retry': () => window.mesaReload(),
+    'nv-retry': () => window.mouawaReload(),
     'nv-confirmed': () => { S.showLogin = true; S.loginPrefill = S.auth.sentTo || ''; S.auth.screen = 'welcome'; S.creating = false; render(); setTimeout(() => $('#lg-pw')?.focus(), 60); },
     'nv-change': () => { S.auth.screen = 'signup'; S.auth.step = 2; S.creating = true; render(); },
     'nv-resend': async () => {
@@ -194,12 +194,12 @@ if (window.MESA_NATIVE) {
   };
 
   /* Android back button */
-  window.__mesaBack = () => {
+  window.__mouawaBack = () => {
     if (S.modal) { closeModal(); return; }
     if (S.history && S.history.length) { A.back(); return; }
     if (me() && S.view !== 'home') { go('home'); return; }
     if (S.creating && S.auth.step > 1) { A['au-back'](); return; }
     if (S.creating || S.showLogin || S.auth.screen === 'verify') { A['au-home'](); return; }
-    if (window.mesaPost) window.mesaPost({t:'exit'});
+    if (window.mouawaPost) window.mouawaPost({t:'exit'});
   };
 }

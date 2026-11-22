@@ -1,4 +1,4 @@
-// Log in with a Mesa username. The username is mapped to the account's email on the server,
+// Log in with a Mouawa username. The username is mapped to the account's email on the server,
 // so email addresses never reach the client. Password checking is done by Supabase Auth.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 

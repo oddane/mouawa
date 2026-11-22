@@ -8,25 +8,25 @@ import * as ExpoLinking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import mesaHtml from './src/mesaHtml';
+import mouawaHtml from './src/mouawaHtml';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Everything the page saves (sign-in session, preferences) lives in AsyncStorage, so it survives restarts
 // no matter how the platform WebView treats storage for inline pages.
-const STORE_KEY = 'mesa-store-v1';
+const STORE_KEY = 'mouawa-store-v1';
 // The page's origin. Nothing is fetched from it; it only gives the page a stable https origin.
-const BASE_URL = 'https://app.mesa.local/';
+const BASE_URL = 'https://app.mouawa.local/';
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <MesaApp />
+      <MouawaApp />
     </SafeAreaProvider>
   );
 }
 
-function MesaApp() {
+function MouawaApp() {
   const web = useRef(null);
   const storeRef = useRef(null);
   const loaded = useRef(false);
@@ -42,11 +42,11 @@ function MesaApp() {
       .finally(() => setReady(true));
   }, []);
 
-  // Email links (confirm account, reset password) come back to the app as mesa://auth#access_token=...
+  // Email links (confirm account, reset password) come back to the app as mouawa://auth#access_token=...
   const sendLink = useCallback((url) => {
     if (!url || !/access_token|error_description/.test(url)) return;
     if (loaded.current && web.current) {
-      web.current.injectJavaScript(`window.__mesaDeepLink && window.__mesaDeepLink(${JSON.stringify(url)}); true;`);
+      web.current.injectJavaScript(`window.__mouawaDeepLink && window.__mouawaDeepLink(${JSON.stringify(url)}); true;`);
     } else {
       pendingLink.current = url;
     }
@@ -62,7 +62,7 @@ function MesaApp() {
     if (Platform.OS !== 'android') return undefined;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (!web.current) return false;
-      web.current.injectJavaScript('window.__mesaBack ? window.__mesaBack() : window.ReactNativeWebView.postMessage(JSON.stringify({t:"exit"})); true;');
+      web.current.injectJavaScript('window.__mouawaBack ? window.__mouawaBack() : window.ReactNativeWebView.postMessage(JSON.stringify({t:"exit"})); true;');
       return true;
     });
     return () => sub.remove();
@@ -116,8 +116,8 @@ function MesaApp() {
   const html = useMemo(() => {
     if (!ready) return '';
     const safe = (v) => JSON.stringify(v).replace(/</g, '\\u003c');
-    const boot = `<script>window.MESA_STORE=${safe(storeRef.current || {})};window.MESA_REDIRECT=${safe(ExpoLinking.createURL('auth'))};window.MESA_PLATFORM=${safe(Platform.OS)};</script>`;
-    return mesaHtml.replace('<head>', () => '<head>' + boot);
+    const boot = `<script>window.MOUAWA_STORE=${safe(storeRef.current || {})};window.MOUAWA_REDIRECT=${safe(ExpoLinking.createURL('auth'))};window.MOUAWA_PLATFORM=${safe(Platform.OS)};</script>`;
+    return mouawaHtml.replace('<head>', () => '<head>' + boot);
     // Rebuilt on every remount so the page gets the latest saved session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, mountKey]);

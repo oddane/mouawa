@@ -1,24 +1,24 @@
-/* Mesa native bridge: implements the page runtime Mesa expects (claude.use('db' | 'user' | 'assets'))
-   on top of Supabase, and connects the page to the React Native shell. Loaded before Mesa's own script. */
+/* Mouawa native bridge: implements the page runtime Mouawa expects (claude.use('db' | 'user' | 'assets'))
+   on top of Supabase, and connects the page to the React Native shell. Loaded before Mouawa's own script. */
 (function () {
   'use strict';
-  var CFG = window.MESA_CONFIG || {};
+  var CFG = window.MOUAWA_CONFIG || {};
   var RN = window.ReactNativeWebView;
   var post = function (m) { try { if (RN) RN.postMessage(JSON.stringify(m)); } catch (e) {} };
-  window.MESA_NATIVE = true;
-  window.mesaPost = post;
+  window.MOUAWA_NATIVE = true;
+  window.mouawaPost = post;
   /* In the app, the shell remounts the page (WKWebView can't reliably reload an inline page). */
-  window.mesaReload = function () { if (RN) post({ t: 'reload' }); else location.reload(); };
+  window.mouawaReload = function () { if (RN) post({ t: 'reload' }); else location.reload(); };
 
-  /* Storage that survives app restarts: the shell injects saved values as MESA_STORE and saves every change. */
-  var store = Object.assign({}, window.MESA_STORE || {});
-  var mesaStore = {
+  /* Storage that survives app restarts: the shell injects saved values as MOUAWA_STORE and saves every change. */
+  var store = Object.assign({}, window.MOUAWA_STORE || {});
+  var mouawaStore = {
     getItem: function (k) { return Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null; },
     setItem: function (k, v) { store[k] = String(v); post({ t: 'store', k: k, v: String(v) }); if (!RN) try { localStorage.setItem(k, v); } catch (e) {} },
     removeItem: function (k) { delete store[k]; post({ t: 'store', k: k, v: null }); if (!RN) try { localStorage.removeItem(k); } catch (e) {} }
   };
   if (!RN) { try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); store[k] = localStorage.getItem(k); } } catch (e) {} }
-  window.mesaStore = mesaStore;
+  window.mouawaStore = mouawaStore;
 
   /* Native niceties */
   try { navigator.vibrate = function (p) { post({ t: 'haptic', p: p }); return true; }; } catch (e) {}
@@ -35,7 +35,7 @@
     var key = bg + (lum < 0.5);
     if (key !== lastTheme) { lastTheme = key; post({ t: 'theme', bg: bg, dark: lum < 0.5 }); }
   }
-  window.mesaSendTheme = sendTheme;
+  window.mouawaSendTheme = sendTheme;
   document.addEventListener('DOMContentLoaded', function () {
     sendTheme();
     new MutationObserver(sendTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-mesa', 'style', 'class'] });
@@ -43,31 +43,31 @@
     setTimeout(sendTheme, 600);
   });
 
-  if (!window.supabase || !window.supabase.createClient || !CFG.url) { window.MESA_OFFLINE = true; return; }
+  if (!window.supabase || !window.supabase.createClient || !CFG.url) { window.MOUAWA_OFFLINE = true; return; }
   var sb = window.supabase.createClient(CFG.url, CFG.key, {
-    auth: { storage: mesaStore, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, flowType: 'implicit' }
+    auth: { storage: mouawaStore, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, flowType: 'implicit' }
   });
-  window.mesaSB = sb;
+  window.mouawaSB = sb;
 
   /* Email links (confirm sign-up, reset password) open the app with tokens in the URL. */
-  window.__mesaDeepLink = function (url) {
+  window.__mouawaDeepLink = function (url) {
     try {
       var s = String(url || ''), q = (s.split('#')[1] || '') + '&' + ((s.split('?')[1] || '').split('#')[0]);
       var p = {}; q.split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) p[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, ' ')); });
-      if (p.error_description) { mesaStore.setItem('mesa-flash', p.error_description); window.mesaReload(); return; }
+      if (p.error_description) { mouawaStore.setItem('mouawa-flash', p.error_description); window.mouawaReload(); return; }
       if (p.access_token && p.refresh_token) {
         sb.auth.setSession({ access_token: p.access_token, refresh_token: p.refresh_token }).then(function () {
-          if (p.type === 'recovery') mesaStore.setItem('mesa-recovery', '1');
-          if (p.type === 'signup' || p.type === 'email') mesaStore.setItem('mesa-flash', 'Email confirmed. Welcome to Mesa.');
-          if (p.type === 'email_change') mesaStore.setItem('mesa-flash', 'Your new email is confirmed.');
-          mesaStore.setItem('mesa-fresh', '1');
-          window.mesaReload();
+          if (p.type === 'recovery') mouawaStore.setItem('mouawa-recovery', '1');
+          if (p.type === 'signup' || p.type === 'email') mouawaStore.setItem('mouawa-flash', 'Email confirmed. Welcome to Mouawa.');
+          if (p.type === 'email_change') mouawaStore.setItem('mouawa-flash', 'Your new email is confirmed.');
+          mouawaStore.setItem('mouawa-fresh', '1');
+          window.mouawaReload();
         });
       }
     } catch (e) {}
   };
 
-  /* ---------- db: Mesa's document API over the docs table ---------- */
+  /* ---------- db: Mouawa's document API over the docs table ---------- */
   var E = function (e) { var x = new Error((e && e.message) || 'Request failed'); x.code = (e && e.code) || 'error'; if (/quota|exceed/i.test(x.message)) x.code = 'quota_exceeded'; if (/permission|policy|42501/.test(x.message + x.code)) x.code = 'permission_denied'; return x; };
   var clean = function (d) { return JSON.parse(JSON.stringify(d === undefined ? {} : d)); };
   var parentOf = function (p) { return p.replace(/\/[^/]+$/, ''); };
@@ -79,7 +79,7 @@
   var listeners = new Set(), channel = null;
   function ensureChannel() {
     if (channel) return;
-    channel = sb.channel('mesa-docs').on('postgres_changes', { event: '*', schema: 'public', table: 'docs' }, function (ch) {
+    channel = sb.channel('mouawa-docs').on('postgres_changes', { event: '*', schema: 'public', table: 'docs' }, function (ch) {
       var row = ch.new && ch.new.path ? ch.new : null, old = ch.old || {};
       var path = row ? row.path : old.path; if (!path) return;
       var coll = row ? row.coll : parentOf(path);

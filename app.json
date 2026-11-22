@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Mesa",
+    "name": "Mouawa",
     "slug": "mouawa",
-    "scheme": "mesa",
+    "scheme": "mouawa",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,17 +10,17 @@
     "newArchEnabled": true,
     "backgroundColor": "#FFFFFF",
     "ios": {
-      "bundleIdentifier": "com.oddane.mesa",
+      "bundleIdentifier": "com.oddane.mouawa",
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Mesa uses the camera so you can take photos and videos to post.",
-        "NSMicrophoneUsageDescription": "Mesa uses the microphone for videos and live Spaces.",
-        "NSPhotoLibraryUsageDescription": "Mesa uses your photo library so you can attach photos and videos to posts.",
+        "NSCameraUsageDescription": "Mouawa uses the camera so you can take photos and videos to post.",
+        "NSMicrophoneUsageDescription": "Mouawa uses the microphone for videos and live Spaces.",
+        "NSPhotoLibraryUsageDescription": "Mouawa uses your photo library so you can attach photos and videos to posts.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.oddane.mesa",
+      "package": "com.oddane.mouawa",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1F7A4F",
@@ -28,12 +28,23 @@
       },
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
-      "permissions": ["CAMERA", "RECORD_AUDIO", "VIBRATE"],
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "VIBRATE"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
-          "data": [{ "scheme": "mesa" }],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "data": [
+            {
+              "scheme": "mouawa"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },

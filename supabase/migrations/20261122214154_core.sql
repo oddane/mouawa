@@ -1,4 +1,4 @@
--- Documents: Mesa's data model is document-shaped (collection/doc paths). One table holds every doc.
+-- Documents: Mouawa's data model is document-shaped (collection/doc paths). One table holds every doc.
 create table public.docs (
   path text primary key,
   coll text not null,
