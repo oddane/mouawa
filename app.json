@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "Mesa",
+    "slug": "mouawa",
+    "scheme": "mesa",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "backgroundColor": "#FFFFFF",
+    "ios": {
+      "bundleIdentifier": "com.oddane.mesa",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Mesa uses the camera so you can take photos and videos to post.",
+        "NSMicrophoneUsageDescription": "Mesa uses the microphone for videos and live Spaces.",
+        "NSPhotoLibraryUsageDescription": "Mesa uses your photo library so you can attach photos and videos to posts.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.oddane.mesa",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1F7A4F",
+        "monochromeImage": "./assets/adaptive-icon.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": ["CAMERA", "RECORD_AUDIO", "VIBRATE"],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [{ "scheme": "mesa" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 120,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF",
+          "dark": {
+            "image": "./assets/splash-icon-dark.png",
+            "backgroundColor": "#0F1D16"
+          }
+        }
+      ]
+    ]
+  }
+}
