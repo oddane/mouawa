@@ -53,6 +53,7 @@ When it's ready for the stores, use `eas build --profile production` and then `e
 | `src/mouawaHtml.js` | The Mouawa interface as a string module (generated, don't edit) |
 | `web/mouawa.html` | The full Mouawa page built for the app |
 | `web/src/shim.js` | Connects Mouawa's data layer to Supabase (documents, realtime, storage, auth) |
+| `web/src/vendor/` | Supabase's JS client (MIT), bundled so the app doesn't download it at launch |
 | `web/src/native.js` | App-only account flows: email confirmation, email or username log in, password reset, log out |
 | `supabase/` | Database migrations and the `login` edge function (username → account, done on the server) |
 
@@ -71,4 +72,4 @@ Mouawa stores everything as documents (`posts/abc`, `profiles/xyz`, `convos/c1/m
 
 - **Write access is too open for a public launch.** Any signed-in account can write shared documents, matching how the original Mouawa prototype worked. Before opening to the public, tighten the `docs` policies so people can only edit their own posts and profiles.
 - **Some features aren't available in the app yet.** Ask Mouawa (the AI assistant), live typing and "who's here" presence, and file exports depended on Claude's artifact runtime.
-- **Fonts need internet the first time.** The interface loads Inter from Google Fonts and Supabase's client library from a CDN on first launch, so it needs a connection. Without one, it shows an offline screen with a retry button.
+- **Needs a connection.** The Supabase client is bundled into the app, but the Inter font comes from Google Fonts and all data from Supabase. Without a connection, the app shows an offline screen with a retry button.

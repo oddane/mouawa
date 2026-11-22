@@ -27,7 +27,12 @@
     window.open = function (url) { if (url) post({ t: 'open', url: String(url) }); return null; };
   }
   var lastTheme = '';
+  var themeQueued = false;
   function sendTheme() {
+    if (themeQueued) return; themeQueued = true;
+    requestAnimationFrame(function () { themeQueued = false; checkTheme(); });
+  }
+  function checkTheme() {
     var b = document.body; if (!b) return;
     var bg = getComputedStyle(b).backgroundColor || '#fff';
     var m = bg.match(/\d+(\.\d+)?/g) || [255, 255, 255];
@@ -77,13 +82,40 @@
 
   /* One realtime channel for the whole table; listeners filter by collection or path. */
   var listeners = new Set(), channel = null;
+  /* Instant updates: writes show on screen right away from a local copy, then save in the background.
+     Server echoes for a path with a write still in flight are held back so the screen never flickers. */
+  var cache = new Map(), pending = new Map();
+  var isObj = function (v) { return v && typeof v === 'object' && !Array.isArray(v); };
+  var deepMerge = function (a, b) {
+    if (!isObj(a) || !isObj(b)) return b;
+    var o = {}; Object.keys(a).forEach(function (k) { o[k] = a[k]; });
+    Object.keys(b).forEach(function (k) { o[k] = (k in a) ? deepMerge(a[k], b[k]) : b[k]; });
+    return o;
+  };
+  var dispatch = function (type, path, data) {
+    if (type === 'DELETE') cache.delete(path); else cache.set(path, data);
+    var coll = parentOf(path);
+    listeners.forEach(function (l) { l(type, path, coll, type === 'DELETE' ? null : data); });
+  };
+  var begin = function (p) { pending.set(p, (pending.get(p) || 0) + 1); };
+  var end = function (p) { var n = (pending.get(p) || 1) - 1; if (n > 0) pending.set(p, n); else pending.delete(p); };
+  function optimistic(path, next, run) {
+    var had = cache.has(path), prev = cache.get(path);
+    begin(path);
+    if (next === undefined) dispatch('DELETE', path); else dispatch(had ? 'UPDATE' : 'INSERT', path, next);
+    return run().then(function (v) { end(path); return v; }, function (e) {
+      end(path);
+      if (had) dispatch('UPDATE', path, prev); else dispatch('DELETE', path);
+      throw e;
+    });
+  }
   function ensureChannel() {
     if (channel) return;
     channel = sb.channel('mouawa-docs').on('postgres_changes', { event: '*', schema: 'public', table: 'docs' }, function (ch) {
       var row = ch.new && ch.new.path ? ch.new : null, old = ch.old || {};
       var path = row ? row.path : old.path; if (!path) return;
-      var coll = row ? row.coll : parentOf(path);
-      listeners.forEach(function (l) { l(ch.eventType, path, coll, row ? row.data : null); });
+      if (pending.has(path)) { if (row) cache.set(path, row.data); return; }
+      dispatch(ch.eventType === 'DELETE' ? 'DELETE' : ch.eventType, path, row ? row.data : null);
     }).subscribe();
   }
   sb.auth.onAuthStateChange(function (ev) {
@@ -94,15 +126,24 @@
     return {
       id: idOf(path), path: path,
       get: function () {
-        return sb.from('docs').select('path,data').eq('path', path).maybeSingle().then(function (r) { if (r.error) throw E(r.error); return docSnap(path, r.data ? r.data.data : undefined); });
+        return sb.from('docs').select('path,data').eq('path', path).maybeSingle().then(function (r) { if (r.error) throw E(r.error); var d = r.data ? r.data.data : undefined; if (!pending.has(path)) { if (d === undefined) cache.delete(path); else cache.set(path, d); } return docSnap(path, pending.has(path) ? cache.get(path) : d); });
       },
-      set: function (d) { return sb.rpc('doc_set', { p_path: path, p_data: clean(d) }).then(function (r) { if (r.error) throw E(r.error); }); },
+      set: function (d) {
+        var data = clean(d);
+        return optimistic(path, data, function () { return sb.rpc('doc_set', { p_path: path, p_data: data }).then(function (r) { if (r.error) throw E(r.error); }); });
+      },
       update: function (d) {
-        return sb.rpc('doc_merge', { p_path: path, p_patch: clean(d) }).then(function (r) {
-          if (r.error) { var x = E(r.error); if (/not_found/.test(r.error.message)) x.code = 'not_found'; throw x; }
-        });
+        var patch = clean(d);
+        var run = function () {
+          return sb.rpc('doc_merge', { p_path: path, p_patch: patch }).then(function (r) {
+            if (r.error) { var x = E(r.error); if (/not_found/.test(r.error.message)) x.code = 'not_found'; throw x; }
+          });
+        };
+        return cache.has(path) ? optimistic(path, deepMerge(cache.get(path), patch), run) : run();
       },
-      delete: function () { return sb.from('docs').delete().eq('path', path).then(function (r) { if (r.error) throw E(r.error); }); },
+      delete: function () {
+        return optimistic(path, undefined, function () { return sb.from('docs').delete().eq('path', path).then(function (r) { if (r.error) throw E(r.error); }); });
+      },
       onSnapshot: function (cb, onErr) {
         var alive = true, ready = false, queued = [], cur;
         var emit = function () { if (alive) cb(docSnap(path, cur)); };
@@ -178,7 +219,7 @@
         else r = r.order('path');
         return r.range(from, from + page - 1).then(function (res) {
           if (res.error) throw E(res.error);
-          (res.data || []).forEach(function (row) { out.set(row.path, row.data); });
+          (res.data || []).forEach(function (row) { if (pending.has(row.path)) { out.set(row.path, cache.get(row.path)); } else { out.set(row.path, row.data); cache.set(row.path, row.data); } });
           var enough = q.limit && out.size >= q.limit;
           if ((res.data || []).length === page && !enough && from < 20000) return step(from + page);
           return out;

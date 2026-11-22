@@ -122,6 +122,9 @@ function MouawaApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, mountKey]);
 
+  // Stable object, so the 650 KB page is only handed to the WebView when it really changes.
+  const source = useMemo(() => ({ html, baseUrl: BASE_URL }), [html]);
+
   const onLoadEnd = useCallback(() => {
     loaded.current = true;
     SplashScreen.hideAsync().catch(() => {});
@@ -148,7 +151,7 @@ function MouawaApp() {
       <WebView
         key={mountKey}
         ref={web}
-        source={{ html, baseUrl: BASE_URL }}
+        source={source}
         originWhitelist={['*']}
         onMessage={onMessage}
         onLoadEnd={onLoadEnd}
